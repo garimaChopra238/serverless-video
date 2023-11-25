@@ -1,0 +1,10 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://127.0.0.1:8080
+functions:
+  invokestepfunction:
+    lang: node18
+    handler: ./invokestepfunction
+    image: garima238/invokestepfunction:latest
+
