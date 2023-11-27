@@ -1,14 +1,20 @@
 'use strict'
-const S3 = require('aws-sdk/clients/s3');
+// const S3 = require('aws-sdk/clients/s3');
+const AWS = require('aws-sdk');
 const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 
-const s3 = new S3({
-  region: 'ap-south-1',
-});
+// const s3 = new S3({
+//   region: 'ap-south-1',
+// });
+let s3;
 
 
 module.exports = event => {
+  configAWS();
+  s3 = new AWS.S3();
+
+
   const id = event.id; // data from the invokeStepFunction lamda function
   const params = { Bucket: 'video-intake', Key: id };
   const readStream = s3.getObject(params).createReadStream(); // create s3 readStream
@@ -45,4 +51,17 @@ module.exports = event => {
     .outputOptions(['-vf scale=w=640:h=360', '-c:a aac', '-ar 48000', '-b:a 96k', '-c:v h264', '-profile:v main', '-crf 20', '-g 48', '-keyint_min 48', '-sc_threshold 0', '-b:v 800k', '-maxrate 856k', '-bufsize 1200k', '-f hls', '-hls_time 4', '-hls_playlist_type vod', `-hls_segment_filename /tmp/${id}/360p_%d.ts`])
     .output(`/tmp/${id}/360p.m3u8`) // output files are temporarily stored in tmp directory
     .run();
+}
+
+function configAWS() {
+  let accessKeyId = fs.readFileSync("/var/openfaas/secrets/shorturl-dynamo-key").toString()
+  let secretKey = fs.readFileSync("/var/openfaas/secrets/shorturl-dynamo-secret").toString()
+
+  AWS.config.update({
+      region: 'ap-south-1',
+      credentials: {
+          accessKeyId: accessKeyId,
+          secretAccessKey: secretKey
+      }
+  });
 }

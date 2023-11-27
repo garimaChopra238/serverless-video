@@ -1,12 +1,17 @@
 'use strict'
-const S3 = require('aws-sdk/clients/s3'); // no need to install aws-sdk, available without installing for all nodejs lambda functions
+// const S3 = require('aws-sdk/clients/s3'); // no need to install aws-sdk, available without installing for all nodejs lambda functions
+const AWS = require('aws-sdk'); // no need to install aws-sdk, available without installing for all nodejs lambda functions
 const crypto = require('crypto');
 
-const s3 = new S3({
-  region: 'ap-south-1',
-});
+// CHECK THIS----------------
+// const s3 = new S3({
+//   region: 'ap-south-1',
+// });
+let s3;
 
 const createPresignedUrl = metaData => {
+  configAWS();
+  s3 = new AWS.S3();
   // metadata can contain additional info send from the client
   const params = {
     Fields: {
@@ -32,23 +37,42 @@ const createPresignedUrl = metaData => {
   })
 }
 
-const getPreSignedUrl = async event => {
+const getPreSignedUrl = async (event, context) => {
   try {
     const data = await createPresignedUrl(JSON.parse(event.body));
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        data,
-      }),
-    };
+    context
+      .status(200)
+      .succeed({ data });
+    // return {
+    //   statusCode: 200,
+    //   body: JSON.stringify({
+    //     data,
+    //   }),
+    // };
   } catch (err) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        message: 'Internal server error',
-      }),
-    }
+    context
+      .status(500)
+      .fail('Internal server error');
+    // return {
+    //   statusCode: 500,
+    //   body: JSON.stringify({
+    //     message: 'Internal server error',
+    //   }),
+    // }
   }
+}
+
+function configAWS() {
+  let accessKeyId = fs.readFileSync("/var/openfaas/secrets/shorturl-dynamo-key").toString()
+  let secretKey = fs.readFileSync("/var/openfaas/secrets/shorturl-dynamo-secret").toString()
+
+  AWS.config.update({
+      region: 'ap-south-1',
+      credentials: {
+          accessKeyId: accessKeyId,
+          secretAccessKey: secretKey
+      }
+  });
 }
 
 module.exports = {

@@ -1,14 +1,19 @@
 'use strict'
-const S3 = require('aws-sdk/clients/s3');
+// const S3 = require('aws-sdk/clients/s3');
+const AWS = require('aws-sdk');
 const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 
-const s3 = new S3({
-  region: 'ap-south-1',
-});
+// const s3 = new S3({
+//   region: 'ap-south-1',
+// });
+let s3;
 
 
 module.exports = event => {
+  configAWS();
+  s3 = new AWS.S3();
+
   const id = event.id;
   const params = { Bucket: 'video-intake', Key: id };
   const readStream = s3.getObject(params).createReadStream();
@@ -46,3 +51,17 @@ module.exports = event => {
     .output(`/tmp/${id}/720p.m3u8`)
     .run();
 };
+
+
+function configAWS() {
+  let accessKeyId = fs.readFileSync("/var/openfaas/secrets/shorturl-dynamo-key").toString()
+  let secretKey = fs.readFileSync("/var/openfaas/secrets/shorturl-dynamo-secret").toString()
+
+  AWS.config.update({
+      region: 'ap-south-1',
+      credentials: {
+          accessKeyId: accessKeyId,
+          secretAccessKey: secretKey
+      }
+  });
+}
