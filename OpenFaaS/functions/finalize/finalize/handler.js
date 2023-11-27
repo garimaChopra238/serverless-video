@@ -1,14 +1,19 @@
-'use strict'
 const AWS = require('aws-sdk');
+const { config } = require('dotenv');
 
-AWS.config.update({
-  region: 'ap-south-1',
-});
+// AWS.config.update({
+//   region: 'ap-south-1',
+// });
 
-const dynamoDb = new AWS.DynamoDB.DocumentClient();
-const cloudfront = new AWS.CloudFront();
+// const dynamoDb = new AWS.DynamoDB.DocumentClient();
+// const cloudfront = new AWS.CloudFront();
 
-module.exports = async event => {
+const finalize = async event => {
+  configAWS();
+  dynamoDb = new AWS.DynamoDB.DocumentClient();
+  if (!cloudfront) {
+    cloudfront = new AWS.CloudFront();
+  }
   try {
     const id = event[4].id;
 
@@ -43,4 +48,21 @@ module.exports = async event => {
   } catch (err) {
     console.error(err);
   }
+};
+
+function configAWS() {
+  let accessKeyId = fs.readFileSync("/var/openfaas/secrets/shorturl-dynamo-key").toString()
+  let secretKey = fs.readFileSync("/var/openfaas/secrets/shorturl-dynamo-secret").toString()
+
+  AWS.config.update({
+      region: 'ap-south-1',
+      credentials: {
+          accessKeyId: accessKeyId,
+          secretAccessKey: secretKey
+      }
+  });
+}
+
+module.exports = {
+  handler: finalize,
 };

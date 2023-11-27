@@ -1,14 +1,20 @@
 'use strict'
 const AWS = require('aws-sdk');
 
-AWS.config.update({
-  region: 'ap-south-1',
-});
+// AWS.config.update({
+//   region: 'ap-south-1',
+// });
 
-const s3 = new AWS.S3();
-const dynamoDb = new AWS.DynamoDB.DocumentClient();
+// const s3 = new AWS.S3();
+// const dynamoDb = new AWS.DynamoDB.DocumentClient();
+let s3, dynamoDb;
 
-module.exports = async event => {
+const putMetadataAndPlaylist = async event => {
+  configAWS();
+  dynamoDb = new AWS.DynamoDB.DocumentClient();
+  if (!s3) {
+    s3 = new AWS.S3();
+  }
   const id = event.id;
   try {
     const s3Params = {
@@ -50,4 +56,21 @@ module.exports = async event => {
   } catch (err) {
     console.error(err);
   }
+};
+
+function configAWS() {
+  let accessKeyId = fs.readFileSync("/var/openfaas/secrets/shorturl-dynamo-key").toString()
+  let secretKey = fs.readFileSync("/var/openfaas/secrets/shorturl-dynamo-secret").toString()
+
+  AWS.config.update({
+      region: 'ap-south-1',
+      credentials: {
+          accessKeyId: accessKeyId,
+          secretAccessKey: secretKey
+      }
+  });
+}
+
+module.exports = {
+  handler: putMetadataAndPlaylist,
 };
